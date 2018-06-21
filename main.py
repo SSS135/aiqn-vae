@@ -29,6 +29,8 @@ parser.add_argument('--kl-scale', type=float, default=1,
                     help='kl penalty strength')
 parser.add_argument('--no-aiqn', action='store_true', default=False,
                     help='enables random normal instead of AIQN')
+parser.add_argument('--conditioned', action='store_true', default=False,
+                    help='AIQN conditioning')
 args = parser.parse_args()
 args.cuda = not args.no_cuda and torch.cuda.is_available()
 
@@ -85,22 +87,30 @@ class VAE(nn.Module):
 class QNet(nn.Module):
     def __init__(self):
         super().__init__()
+        self.tau_fc = nn.Linear(20, 256)
+        self.classes_fc = nn.Linear(10, 256)
         self.q_net = nn.Sequential(
-            nn.Linear(20, 128),
             nn.ReLU(True),
-            nn.Linear(128, 128),
+            nn.Linear(256, 256),
             nn.ReLU(True),
-            nn.Linear(128, 20),
+            nn.Linear(256, 20),
         )
 
-    def forward(self, tau):
-        return self.q_net(tau * 2 - 1)
+    def forward(self, tau, classes):
+        net_input = self.tau_fc(tau * 2 - 1)
+        if args.conditioned:
+            with torch.no_grad():
+                onehot = torch.zeros((classes.shape[0], 10), device=device)
+                onehot.scatter_(dim=-1, index=classes.view(classes.shape[0], 1), value=1)
+                onehot -= 1 / 10
+            net_input += self.classes_fc(onehot)
+        return self.q_net(net_input)
 
 
 model = VAE().to(device)
 q_net = QNet().to(device)
 
-optimizer = optim.Adam(chain(model.parameters(), q_net.parameters()), lr=1e-3, weight_decay=1e-4)
+optimizer = optim.Adam(chain(model.parameters(), q_net.parameters()), lr=1e-3, weight_decay=1e-3)
 
 
 # Reconstruction + KL divergence losses summed over all elements and batch
@@ -139,14 +149,14 @@ def huber_quantile_loss(tau, u, k=0.02):
 def train(epoch):
     model.train()
     train_loss = 0
-    for batch_idx, (data, _) in enumerate(train_loader):
-        data = data.to(device)
+    for batch_idx, (data, classes) in enumerate(train_loader):
+        data, classes = data.to(device), classes.to(device)
         optimizer.zero_grad()
         recon_batch, mu, logvar = model(data)
         vae_loss = loss_function(recon_batch, data, mu, logvar)
 
         tau = torch.rand(mu.shape[0], 20, device=device)
-        Q = q_net(tau)
+        Q = q_net(tau, classes)
         # maybe should use mu.detach()
         q_loss = huber_quantile_loss(tau, mu - Q).sum()
 
@@ -183,14 +193,16 @@ def test(epoch):
     logger.add_scalar('test_loss', test_loss, epoch)
 
 
-fixed_rand = torch.rand(64, 20, device=device)
-fixed_randn = torch.randn(64, 20, device=device)
+fixed_rand = torch.rand(80 if args.conditioned else 64, 20, device=device)
+fixed_randn = torch.randn(80 if args.conditioned else 64, 20, device=device)
+fixed_classes = torch.arange(10, device=device, dtype=torch.long)
+fixed_classes = fixed_classes.expand(8, 10).transpose(0, 1).reshape(-1)
 with SummaryWriter(summary_path) as logger:
     for epoch in range(1, args.epochs + 1):
         train(epoch)
         test(epoch)
 
         with torch.no_grad():
-            z = fixed_randn if args.no_aiqn else q_net(fixed_rand)
+            z = fixed_randn if args.no_aiqn else q_net(fixed_rand, fixed_classes)
             sample = model.decode(z).cpu()
             logger.add_image('sample', sample.view(-1, 1, 28, 28), epoch)
