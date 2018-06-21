@@ -1,10 +1,17 @@
 # AIQN-VAE
 PyTorch VAE example extended with Autoregressive Quantile Networks https://arxiv.org/abs/1806.05575
 
-## Running
-AIQN with 1 KL penalty `main.py --kl-scale 1`
+By default writes tensorboard logs to `./tensorboard`, change with `--log-folder /log/path`. Saving just png images without tensorboard is not implemented.
 
-No AIQN with 1 KL penalty (same as PyTorch example) `main.py --no-aiqn --kl-scale 1`
+## Requirements
+PyTorch 0.4.0
+
+tensorboard-pytorch https://github.com/lanpa/tensorboard-pytorch
+
+## Running
+AIQN with 1 KL penalty `main.py --kl-scale 1 --log-folder ./tensorboard`
+
+No AIQN with 1 KL penalty (same as PyTorch example) `main.py --no-aiqn --kl-scale 1 --log-folder ./tensorboard`
 
 ## Examples
 
