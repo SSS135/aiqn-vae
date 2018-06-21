@@ -3,6 +3,8 @@ PyTorch VAE example extended with Autoregressive Quantile Networks https://arxiv
 
 By default, writes tensorboard logs to `./tensorboard`, change with `--log-folder /log/path`. Saving just png images without tensorboard is not implemented.
 
+With `--conditioned` argument AIQN network also receives class labels as inputs. VAE encoder / decoder does not have access to class labels.
+
 ## Requirements
 PyTorch 0.4.0
 
