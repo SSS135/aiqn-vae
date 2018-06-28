@@ -1,5 +1,5 @@
 # VAE + (Conditioned) Autoregressive Quantile Networks for MNIST
-PyTorch VAE example extended with Autoregressive Quantile Networks https://arxiv.org/abs/1806.05575
+PyTorch VAE example extended with Autoregressive Quantile Networks (though, they aren't autoregressive when applied to VAE) https://arxiv.org/abs/1806.05575
 
 By default, writes tensorboard logs to `./tensorboard`, change with `--log-folder /log/path`. Saving just png images without tensorboard is not implemented.
 
