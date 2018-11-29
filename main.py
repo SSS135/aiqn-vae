@@ -158,7 +158,7 @@ def train(epoch):
 
         tau = torch.rand(mu.shape[0], 20, device=device)
         Q = q_net(tau, classes)
-        q_loss = huber_quantile_loss(tau, mu - Q).sum()
+        q_loss = huber_quantile_loss(tau, mu.detach() - Q).sum()
 
         loss = q_loss + vae_loss
         loss.backward()
