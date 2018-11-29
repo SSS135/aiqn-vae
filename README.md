@@ -17,11 +17,11 @@ No AIQN with 1 KL penalty (same as PyTorch example) `main.py --no-aiqn --kl-scal
 
 ## Examples
 
-#### No AIQN / AIQN with 1 KL penalty. AIQN gives only little improvements.
-<img src="images/mnist_noaiqn_kl1.png" width="300"> <img src="images/mnist_aiqn_kl1.png" width="300">
+#### AIQN with 1 KL penalty / No AIQN. AIQN gives some improvements.
+<img src="images/mnist_aiqn_kl1.png" width="300"> <img src="images/mnist_noaiqn_kl1.png" width="300"> 
 
-#### No AIQN / AIQN with 0 KL penalty. Without AIQN and KL penalty generated images are mess. AIQN gives noticible improvement.
-<img src="images/mnist_noaiqn_kl0.png" width="300"> <img src="images/mnist_aiqn_kl0.png" width="300">
+#### AIQN with 0 KL penalty / No AIQN. Without AIQN and KL penalty generated images are mess. AIQN gives noticible improvement.
+<img src="images/mnist_aiqn_kl0.png" width="300"> <img src="images/mnist_noaiqn_kl0.png" width="300"> 
 
 #### Conditioned AIQN with 1 / 0 KL penalty.
-<img src="images/mnist_aiqn_kl1_cond.png" width="300"> <img src="images/mnist_aiqn_kl0_cond.png" width="300">
+<img src="images/mnist_aiqn_kl1_cond.png" width="300"> <img src="images/mnist_aiqn_kl0_cond.png" width="300"> 
