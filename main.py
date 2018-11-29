@@ -127,24 +127,16 @@ def loss_function(recon_x, x, mu, logvar):
     return BCE + args.kl_scale * KLD
 
 
-def simple_quantile_loss(tau, u):
-    loss = (tau - (u <= 0).float()) * u
-    return loss.sum()
+def l1_quantile_loss(output, target, tau, reduce=True):
+    u = target - output
+    loss = (tau - (u.detach() <= 0).float()).mul_(2).mul_(u)
+    return loss.mean() if reduce else loss
 
 
-def huber_quantile_loss(tau, u, k=0.02):
-    loss = torch.zeros_like(u)
-    u_abs = u.abs()
-    e = (tau - (u <= 0).float()).abs()
-
-    mask_low, mask_high = (u_abs <= k).detach(), (u_abs > k).detach()
-    u_low, u_high = u[mask_low], u[mask_high]
-    tau_low, tau_high = tau[mask_low], tau[mask_high]
-    e_low, e_high = e[mask_low], e[mask_high]
-
-    loss[mask_low] = e_low / (2 * k) * u_low ** 2
-    loss[mask_high] = e_high * (u_high.abs() - 0.5 * k)
-    return loss.sum()
+def huber_quantile_loss(output, target, tau, k=0.05, reduce=True):
+    u = target - output
+    loss = (tau - (u.detach() <= 0).float()).mul_(2 * u.detach().abs().clamp(max=k).div_(k)).mul_(u)
+    return loss.mean() if reduce else loss
 
 
 def train(epoch):
@@ -158,7 +150,7 @@ def train(epoch):
 
         tau = torch.rand(mu.shape[0], 20, device=device)
         Q = q_net(tau, classes)
-        q_loss = huber_quantile_loss(tau, mu.detach() - Q).sum()
+        q_loss = huber_quantile_loss(Q, mu.detach(), tau)
 
         loss = q_loss + vae_loss
         loss.backward()
