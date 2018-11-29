@@ -67,16 +67,11 @@ class VAE(nn.Module):
         return self.fc21(h1), self.fc22(h1)
 
     def reparameterize(self, mu, logvar):
-        if self.training:
-            std = torch.exp(0.5 * logvar)
-            eps = torch.randn_like(std)
-            return eps.mul(std).add_(mu)
-        else:
-            return mu
+        return reparameterize(mu, logvar) if self.training else mu
 
     def decode(self, z):
         h3 = F.relu(self.fc3(z))
-        return F.sigmoid(self.fc4(h3))
+        return torch.sigmoid(self.fc4(h3))
 
     def forward(self, x):
         mu, logvar = self.encode(x.view(-1, 784))
@@ -105,6 +100,12 @@ class QNet(nn.Module):
                 onehot -= 1 / 10
             net_input += self.classes_fc(onehot)
         return self.q_net(net_input)
+    
+
+def reparameterize(mu, logvar):
+    std = torch.exp(0.5 * logvar)
+    eps = torch.randn_like(std)
+    return eps.mul(std).add_(mu)
 
 
 model = VAE().to(device)
@@ -115,7 +116,7 @@ optimizer = optim.Adam(chain(model.parameters(), q_net.parameters()), lr=1e-3, w
 
 # Reconstruction + KL divergence losses summed over all elements and batch
 def loss_function(recon_x, x, mu, logvar):
-    BCE = F.binary_cross_entropy(recon_x, x.view(-1, 784), size_average=False)
+    BCE = F.binary_cross_entropy(recon_x, x.view(-1, 784), reduction='sum')
 
     # see Appendix B from VAE paper:
     # Kingma and Welling. Auto-Encoding Variational Bayes. ICLR, 2014
@@ -157,7 +158,6 @@ def train(epoch):
 
         tau = torch.rand(mu.shape[0], 20, device=device)
         Q = q_net(tau, classes)
-        # maybe should use mu.detach()
         q_loss = huber_quantile_loss(tau, mu - Q).sum()
 
         loss = q_loss + vae_loss
